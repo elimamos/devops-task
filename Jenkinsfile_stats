@@ -36,6 +36,10 @@ pipeline {
                 }else{
                   echo "PHYSICAL MACHINE"
                 }
+                echo "UPTIME is:"
+                sh "uptime"
+                echo "Who's currently using the machine?"
+                sh "w"
               }
             }
 
