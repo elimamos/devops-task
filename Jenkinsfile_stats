@@ -1,0 +1,16 @@
+pipeline {
+    agent {
+          label NODE_NAME
+     }//agent\
+     parameters{
+        string(name: 'NODE_NAME', defaultValue: 'slave1', description: 'Which node status should be checked?')
+     }
+     stages {
+          stage("Monitor Node") {
+             steps {
+                 echo "HEllo from ${NODE_NAME}"
+             }//steps
+          }//stage
+
+       }//stages
+}//pipeline
