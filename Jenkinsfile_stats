@@ -1,16 +1,116 @@
 pipeline {
+
     agent {
           label NODE_NAME
      }//agent\
      parameters{
         string(name: 'NODE_NAME', defaultValue: 'slave1', description: 'Which node status should be checked?')
      }
+     options {
+       ansiColor('xterm')
+     }
+     environment{
+       RED="\\e[31m"
+       GREEN="\\e[32m"
+       BOLD="\\e[1m"
+       NORMAL="\\e[0m"
+     }
      stages {
-          stage("Monitor Node") {
+       stage ("Clean workspace"){
+         steps{
+            script{
+              sh "rm -rf *.txt"
+            }
+          }
+        }
+          stage ("Who am I?"){
+            steps{
+               script{
+                echo "HELLO FROM ${NODE_NAME}"
+                sh "uname -a"
+                ip_address =sh(script: "ip route", returnStdout: true)
+                echo "IP: ${ip_address.find(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/)}"
+                isVirtual=sh(script:" dmesg | grep -i virtual", returnStdout:true)
+                if(isVirtual.split("\n").size()>1){
+                  echo "VIRTUAL MACHINE"
+                }else{
+                  echo "PHYSICAL MACHINE"
+                }
+              }
+            }
+
+          }
+          stage ("General Health"){
+            steps{
+               script{
+                   echo "GENERAL INFO:"
+                  sh "vmstat -s"
+
+                  echo "Top 10 active processes right now:"
+                  sh "top -b -n 1 > top.txt"
+                  topFile =readFile 'top.txt'
+                  index =0
+                  text=""
+                  for (line in topFile.split("\n")){
+                      if(index<17){
+                        text+= line+"\n"
+                      }
+                      index++
+                  }
+                  echo text
+                  echo "For more detials lookup top.txt"
+
+            }
+          }
+        }
+          stage("Monitor RAM") {
              steps {
-                 echo "HEllo from ${NODE_NAME}"
+                 sh "free -h"
              }//steps
           }//stage
-
+          stage("Monitor CPU") {
+             steps {
+                echo "GENERAL INFO:"
+                 sh " cat /proc/cpuinfo"
+                 echo "Processing units available:"
+                 sh "nproc --all"
+             }//steps
+          }//stage
+          stage("Monitor disk Space") {
+             steps {
+                  script{
+                 sh "df -ha > diskSpace.txt"
+                 diskFile = readFile 'diskSpace.txt'
+                 index =0
+                 warnings=[]
+                 for (line in diskFile.split("\n")){
+                   if (index==0){
+                     index++
+                     continue
+                   }
+                   index++
+                     splitted_data= line.replaceAll("\\s{2,}", " ").split(" ")
+                     // echo splitted_data.toString()
+                     used_disk=splitted_data[4].replace("%","").trim()
+                     if(used_disk=="-" || used_disk==""){
+                       used_disk=0
+                     }
+                     if(used_disk.toInteger() >80){
+                       warnings.add(line)
+                     }
+               }//for
+               echo "CURRENT WORKSPACE INFO:"
+               output =  sh(script: "df -ha .", returnStdout: true)
+               echo output
+               if(warnings.size()>0){
+                 echo "!!! WARNING !!! Some disks might be running out of space!"
+                 for (warning in warnings){
+                   echo warning
+                 }
+               }
+               echo "For full output lookup diskSpace.txt"
+             }//script
+           }//steps
+          }//stage
        }//stages
 }//pipeline
