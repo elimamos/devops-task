@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import csv
 
 def main(argv):
-    print("MAIN")
     params={}
     page_content=''
     table=[]
@@ -22,7 +21,7 @@ def main(argv):
     table=parse_page_source(page_content)
     plot_data(table[0])
 
-
+# Plot the received data into a graph
 def plot_data(filename):
     df =pd.read_csv(filename, sep=',')
     plt.figure(figsize=(35,15))
@@ -45,16 +44,16 @@ def create_csv(filename):
         return False
 
 def write_to_csv(filename, row):
-    # The scraped info will be written to a CSV here.
+    # The  data will be written to a CSV here.
     try:
         with open(filename, "a") as fopen:  # Open the csv file.
-            # print("OPENED FILE!")
             csv_writer = csv.writer(fopen)
             csv_writer.writerow(row)
     except Exception as ex:
         print("ERROR!", ex)
         return False
 
+#read input params
 def get_params(argv):
      inputfile = ''
      outputfile = ''
@@ -72,27 +71,24 @@ def get_params(argv):
            source_url = arg
            params['source_url'] = source_url
 
-     print ('source_url  is ', source_url)
      return params
 
 def get_page_source(source_url):
-    # req = Request(source_url, headers={'User-Agent': 'Mozilla/5.0'})
+   # pretending to be a browser to receive the source of the page
     header = {
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
       "X-Requested-With": "XMLHttpRequest"
     }
     r = requests.get(source_url, headers=header)
-    # page_content =urlopen(req).read().text
-    return r.text
 
+    return r.text
+#parse source of the page to retrive specific table
 def parse_page_source(page_content):
-     # new_table = pd.DataFrame(columns=range(3), index = [0]) # I know the size
      soup = BeautifulSoup(page_content, "html.parser")
      column_names=[]
      table_name=""
      table_data=[]
      outputfile=""
-     print(len(soup.find_all("table")))
      table3=soup.find_all("table")[3]
      rows=table3.find_all("tr")
      index=0;
@@ -101,10 +97,8 @@ def parse_page_source(page_content):
          columns=row.find_all("td")
          current_row=[]
          for column in columns:
-             # print(column.text.strip(), "|")
              if index==0:
                  table_name=re.sub(' +', ' ',column.text.strip().replace("\r","").replace("\n",""))
-                 print("TABLE NAME: ",table_name)
                  outputfile=table_name.replace(" ","_")+".csv"
                  if os.path.exists(outputfile):
                    os.remove(outputfile)
@@ -113,7 +107,6 @@ def parse_page_source(page_content):
                  create_csv(outputfile)
              elif index==1:
                  column_names.append(re.sub(' +', ' ',column.text.strip().replace("\r","").replace("\n","")))
-                 print("TABLE COLUMN NAME: ", column_names)
              else:
                 current_row.append(column.text.strip())
          if len(column_names)==4 and has_column_name==False:
@@ -125,9 +118,7 @@ def parse_page_source(page_content):
              table_data.append(current_row)
              write_to_csv(outputfile,current_row)
          index=index+1
-     # print(table_data)
      table = pd.DataFrame(table_data,columns=column_names)
-     # print(table)
      return [outputfile,table]
 
 if __name__ == "__main__":
