@@ -116,5 +116,10 @@ pipeline {
              }//script
            }//steps
           }//stage
+           stage("Archive artifacts"){
+           steps{
+               archiveArtifacts artifacts: '*.txt'
+           }
+       }
        }//stages
 }//pipeline
